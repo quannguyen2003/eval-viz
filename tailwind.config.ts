@@ -52,6 +52,20 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				dashboard: {
+					header: 'hsl(var(--dashboard-header))',
+					'header-foreground': 'hsl(var(--dashboard-header-foreground))',
+					surface: 'hsl(var(--dashboard-surface))',
+					'surface-hover': 'hsl(var(--dashboard-surface-hover))'
+				},
+				status: {
+					excellent: 'hsl(var(--status-excellent))',
+					'excellent-foreground': 'hsl(var(--status-excellent-foreground))',
+					good: 'hsl(var(--status-good))',
+					'good-foreground': 'hsl(var(--status-good-foreground))',
+					poor: 'hsl(var(--status-poor))',
+					'poor-foreground': 'hsl(var(--status-poor-foreground))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
