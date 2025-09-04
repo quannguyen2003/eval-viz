@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { ProjectEvaluationData, EVALUATION_CATEGORIES, CATEGORY_DESCRIPTIONS } from "@/data/mockData";
 import { ScoreCard } from "./ScoreCard";
-import { CategoryTooltip } from "./CategoryTooltip";
+import { ScoreTooltip } from "./ScoreTooltip";
 import {
   Table,
   TableBody,
@@ -12,41 +11,57 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 
+interface ProjectData {
+  project_id: string;
+  q_id: string;
+  question: string;
+  result: string;
+  detail: string;
+  source: string;
+  source_entity: string;
+  muc_danh_gia: string;
+}
+
 interface ProjectScore {
   projectId: string;
-  categoryScores: Record<string, number>;
+  categoryScores: Record<string, { score: number; items: any[] }>;
   totalScore: number;
 }
 
 interface ProjectEvaluationTableProps {
-  data: ProjectEvaluationData[];
+  data: ProjectData[];
 }
 
 export const ProjectEvaluationTable = ({ data }: ProjectEvaluationTableProps) => {
-  const projectScores = useMemo(() => {
+  const { projectScores, categories } = useMemo(() => {
     const projectGroups = data.reduce((acc, item) => {
       if (!acc[item.project_id]) {
         acc[item.project_id] = [];
       }
       acc[item.project_id].push(item);
       return acc;
-    }, {} as Record<string, ProjectEvaluationData[]>);
+    }, {} as Record<string, ProjectData[]>);
 
-    return Object.entries(projectGroups).map(([projectId, items]) => {
-      const categoryScores: Record<string, number> = {};
+    const allCategories = [...new Set(data.map(item => item.muc_danh_gia))];
+
+    const scores = Object.entries(projectGroups).map(([projectId, items]) => {
+      const categoryScores: Record<string, { score: number; items: any[] }> = {};
       
-      EVALUATION_CATEGORIES.forEach(category => {
+      allCategories.forEach(category => {
         const categoryItems = items.filter(item => item.muc_danh_gia === category);
         if (categoryItems.length > 0) {
-          const successCount = categoryItems.filter(item => item.result === "1").length;
-          categoryScores[category] = Math.round((successCount / categoryItems.length) * 100);
+          const successCount = categoryItems.reduce((sum, item) => sum + parseInt(item.result, 10), 0);
+          categoryScores[category] = {
+            score: Math.round((successCount / categoryItems.length) * 100),
+            items: categoryItems,
+          };
         } else {
-          categoryScores[category] = 0;
+          categoryScores[category] = { score: 0, items: [] };
         }
       });
 
       const totalScore = Math.round(
-        Object.values(categoryScores).reduce((sum, score) => sum + score, 0) / 
+        Object.values(categoryScores).reduce((sum, { score }) => sum + score, 0) /
         Object.keys(categoryScores).length
       );
 
@@ -56,6 +71,8 @@ export const ProjectEvaluationTable = ({ data }: ProjectEvaluationTableProps) =>
         totalScore,
       } as ProjectScore;
     });
+
+    return { projectScores: scores, categories: allCategories };
   }, [data]);
 
   return (
@@ -68,40 +85,51 @@ export const ProjectEvaluationTable = ({ data }: ProjectEvaluationTableProps) =>
                 <TableHead className="font-semibold text-foreground">
                   Project Name
                 </TableHead>
-                {EVALUATION_CATEGORIES.map((category) => (
+                {categories.map((category) => (
                   <TableHead key={category} className="font-semibold text-foreground text-center min-w-[140px]">
                     <div className="flex items-center justify-center">
                       <span className="text-xs leading-tight">{category}</span>
-                      <CategoryTooltip description={CATEGORY_DESCRIPTIONS[category]} />
                     </div>
                   </TableHead>
                 ))}
-                <TableHead className="font-semibold text-foreground text-center">
+                <TableHead className="font-semibold text-foreground text-center bg-highlight">
                   <div className="flex items-center justify-center">
                     <span>Total Score</span>
-                    <CategoryTooltip description="Average of all category percentages for this project" />
                   </div>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projectScores.map((project) => (
-                <TableRow 
-                  key={project.projectId} 
+                <TableRow
+                  key={project.projectId}
                   className="hover:bg-dashboard-surface-hover transition-colors"
                 >
                   <TableCell className="font-medium">
-                    {project.projectId}
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={`/${project.projectId.toLowerCase()}.png`}
+                        alt={project.projectId}
+                        className="h-6 w-6"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
+                      />
+                      {project.projectId}
+                    </div>
                   </TableCell>
-                  {EVALUATION_CATEGORIES.map((category) => (
+                  {categories.map((category) => (
                     <TableCell key={category} className="text-center">
-                      <ScoreCard score={project.categoryScores[category]} />
+                      <div className="flex items-center justify-center">
+                        <ScoreCard score={project.categoryScores[category]?.score ?? 0} />
+                        <ScoreTooltip items={project.categoryScores[category]?.items ?? []} />
+                      </div>
                     </TableCell>
                   ))}
-                  <TableCell className="text-center">
-                    <ScoreCard 
-                      score={project.totalScore} 
-                      className="font-semibold px-3 py-1.5" 
+                  <TableCell className="text-center bg-highlight">
+                    <ScoreCard
+                      score={project.totalScore}
+                      className="font-semibold px-3 py-1.5"
                     />
                   </TableCell>
                 </TableRow>
